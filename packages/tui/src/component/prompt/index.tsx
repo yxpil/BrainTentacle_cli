@@ -1138,11 +1138,11 @@ export function Prompt(props: PromptProps) {
       renderer.widthMethod,
     )
     const slash = argumentSlash(inputText, keymapCommands())
-    // BrainTentacle 隐藏指令：整条输入命中配置里的键就展开成对应文本再发送。
-    const hiddenCode = Object.prototype.hasOwnProperty.call(config.brain.hidden_codes, trimmed)
-      ? config.brain.hidden_codes[trimmed]
+    // 快捷指令：整条输入命中 brain.snippets 里的键就展开成对应文本再发送。
+    const snippet = Object.prototype.hasOwnProperty.call(config.brain.snippets, trimmed)
+      ? config.brain.snippets[trimmed]
       : undefined
-    const promptText = hiddenCode ?? inputText
+    const promptText = snippet ?? inputText
     if (delivery === "queue" && (store.mode === "shell" || exitWord || slash)) {
       toast.show({ message: "This prompt cannot be queued", variant: "warning" })
       return false

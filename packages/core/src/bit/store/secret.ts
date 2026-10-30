@@ -9,7 +9,7 @@ import fs from "node:fs"
 import os from "node:os"
 import path from "node:path"
 import { execFileSync } from "node:child_process"
-import { configPathIn } from "./paths.ts"
+import { configPathIn } from "./paths.js"
 
 export const SECRET_PREFIX = "BITENC1:"
 const SALT_LEN = 16

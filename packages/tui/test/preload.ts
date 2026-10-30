@@ -1,3 +1,9 @@
+import os from "node:os"
+import path from "node:path"
+
+// 桌面端可能装在同一台机器上：TUI 测试不能看见真的 bit.db，否则主题与审批的默认值会随开发环境变化。
+process.env.BIT_DATA_DIR ??= path.join(os.tmpdir(), "opencode-tui-test-no-bit-db")
+
 import { NativeError, NativeStatus, OptimizedBuffer } from "@opentui/core"
 
 // Workaround: OpenTUI's test renderer can read a frame while the native writer is still flushing

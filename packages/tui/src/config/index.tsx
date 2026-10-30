@@ -246,11 +246,11 @@ export const Info = Schema.Struct({
   ).annotate({ description: "Debugging settings" }),
   brain: Schema.optional(
     Schema.Struct({
-      approval: Schema.optional(Schema.Literals(["ask", "auto"])).annotate({
+      approval: Schema.optional(Schema.Literals(["ask", "auto", "inherit"])).annotate({
         description:
-          "BrainTentacle approval mode: 'ask' prompts before every write, 'auto' auto-approves calls the policy does not deny",
+          "BrainTentacle approval mode: 'ask' prompts before every write, 'auto' auto-approves calls the policy does not deny, 'inherit' follows the desktop app's tool_approval in bit.db",
       }),
-      hidden_codes: Schema.optional(Schema.Record(Schema.String, Schema.String)).annotate({
+      snippets: Schema.optional(Schema.Record(Schema.String, Schema.String)).annotate({
         description: "Prompt shortcuts: typing the key exactly expands it to the mapped text before sending",
       }),
       theme_sync: Schema.optional(Schema.Boolean).annotate({
@@ -273,8 +273,8 @@ export type Info = Schema.Schema.Type<typeof Info>
 
 export type Resolved = Omit<Info, "attention" | "brain" | "cursor" | "keybinds" | "leader" | "mouse" | "session" | "tabs"> & {
   brain: {
-    approval: "ask" | "auto"
-    hidden_codes: Record<string, string>
+    approval: "ask" | "auto" | "inherit"
+    snippets: Record<string, string>
     theme_sync: boolean
   }
   attention: {
@@ -324,8 +324,8 @@ export function resolve(
   return {
     ...input,
     brain: {
-      approval: input.brain?.approval ?? "ask",
-      hidden_codes: input.brain?.hidden_codes ?? {},
+      approval: input.brain?.approval ?? "inherit",
+      snippets: input.brain?.snippets ?? {},
       theme_sync: input.brain?.theme_sync ?? true,
     },
     attention: {

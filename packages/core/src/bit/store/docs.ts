@@ -1,7 +1,7 @@
 // documents 表：普通文档（明文 JSON）与敏感文档（双层加密）。
 // 语义对齐 store.rs 的 get/put/get_json/put_json/get_secret_json/put_secret_json。
-import type { SqliteDb } from "./sqlite.ts"
-import { sealSecret, unsealSecret } from "./secret.ts"
+import type { SqliteDb } from "./sqlite.js"
+import { sealSecret, unsealSecret } from "./secret.js"
 
 export class DocRepo {
   private readonly db: SqliteDb

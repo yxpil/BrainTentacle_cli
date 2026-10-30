@@ -1,6 +1,7 @@
 import { TextAttributes } from "@opentui/core"
 import { createMemo, For } from "solid-js"
 import { useConfig } from "../config"
+import { approvalFromDesktop, resolveApproval } from "../util/bit"
 import { useTuiApp } from "../context/runtime"
 import { useTheme, useThemes } from "../context/theme"
 import { DialogHeader, DialogLayout } from "../ui/dialog"
@@ -21,13 +22,13 @@ export function DialogAbout() {
     },
     { label: "上游", value: `anomalyco/opencode · MIT License · ${UPSTREAM_URL}` },
     { label: "本版", value: REPO_URL },
-    { label: "改动", value: "品牌与图标换成触手怪；新增 brain.* 设置；升级只看本版仓库的 Release" },
-    { label: "数据", value: "只读桌面端 bit.db 的 config.theme，其余字段与凭据一律不读不写" },
+    { label: "改动", value: "品牌与图标换成触手怪；模型、密钥、审批、主题与桌面端同源；升级只看本版仓库的 Release" },
+    { label: "数据", value: "只读桌面端 bit.db 的 config / ai_config / mcp_servers；client_key、access_password 不读不写，也不写回" },
     {
       label: "当前",
       value: `主题 ${themes.selected} / ${themes.mode()}${
         config.brain.theme_sync && !themes.locked() ? "（跟随桌面端）" : "（本地固定）"
-      } · 审批 ${config.brain.approval}`,
+      } · 审批 ${resolveApproval(config.brain.approval) ?? "ask"}${approvalFromDesktop(config.brain.approval) ? "（桌面端）" : ""}`,
     },
   ])
 

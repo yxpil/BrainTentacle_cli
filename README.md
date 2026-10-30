@@ -24,8 +24,8 @@ BrainTentacle（BIT，触手怪）的终端界面与命令行工具。它是 [op
 | --- | --- |
 | 品牌 | 所有面向用户的文案改成 BrainTentacle；命令名 `bt` / `braintentacle`（`opencode` 不再作为命令名出现） |
 | 图标 | 全部由桌面端真实图标 `icon.ico` 转换而来：桌面图标、favicon、TUI 字符画 |
-| 配置发现 | 先读 `braintentacle.json` / `braintentacle.jsonc`，仍兼容 `opencode.json(c)` |
-| 新增设置 | `brain.approval`、`brain.hidden_codes`、`brain.theme_sync`（见下表） |
+| 配置来源 | 模型与密钥、MCP、审批、主题读自桌面端的 `bit.db`；文件配置先读 `braintentacle.json` / `braintentacle.jsonc`，仍兼容 `opencode.json(c)` |
+| 新增设置 | `brain.approval`、`brain.snippets`、`brain.theme_sync`（见下表） |
 | 主题 | 内置 `braintentacle` 蓝色主题并成为 TUI 默认；异常回退仍是上游 `opencode` |
 | 升级 | 版本来自本仓库 GitHub Releases 的 `latest`；`--method curl` 明确拒绝，因为它跑上游安装脚本会把定制覆盖回 stock opencode |
 | 桌面端打包 | electron-builder 的 publish 从 `opencode.ai/update/...` 改成本仓库 GitHub Releases |
@@ -35,8 +35,8 @@ BrainTentacle（BIT，触手怪）的终端界面与命令行工具。它是 [op
 
 | 键 | 取值 | 作用 |
 | --- | --- | --- |
-| `brain.approval` | `ask` \| `auto` | `ask` 每次写入都先确认；`auto` 放行策略未明确拒绝的调用。`--auto` 是本次启动的显式让行，优先于此 |
-| `brain.hidden_codes` | `{ 键: 文本 }` | 整条输入命中键就展开成对应文本再发送（BIT 桌面端的隐藏指令语义） |
+| `brain.approval` | `inherit` \| `ask` \| `auto` | 默认 `inherit`：跟随桌面端 `config.tool_approval`（只有 `allow_all` 算放行；读不到数据时回到 ask，绝不因为读不到就放行）。`ask` / `auto` 是本地钉死；`--auto` 只影响本次启动 |
+| `brain.snippets` | `{ 键: 文本 }` | 整条输入命中键就展开成对应文本再发送（本 CLI 自己的快捷指令，不是桌面端的隐藏码） |
 | `brain.theme_sync` | `true` \| `false` | 未锁定 Color mode 时，跟随桌面端写在 `bit.db` 里的明暗主题 |
 
 ```jsonc
@@ -70,8 +70,15 @@ BrainTentacle（BIT，触手怪）的终端界面与命令行工具。它是 [op
 | `skills` / `memories` | 明文 JSON 数组 | 各 1 条 |
 | `mcp_servers` / `hidden_codes` | **这个版本没有这两个文档** | MCP 类工具挂在 `tools[].kind = { kind: "mcp" \| "remote" }` 上；隐藏指令只有 `config.hidden_code_enabled` 开关 |
 
-**已接好**：明暗主题（`config.theme` → `brain.theme_sync`）。
-**接着按上表接**：`ai_config.providers` → opencode 的 provider / 模型 / key（这一步完成后才真正不用配两次）、`config.system_prompt` 与 `minimal_prompt` → 系统提示、`runtimes` + `skills` → 解释器与技能、`tool_approval` → 审批。
+**已接好**（注入点在 `packages/core/src/config.ts` 的 entries 组装里，排在 wellknown 之后、本机与项目配置之前，所以显式配置永远盖得住）：
+
+- `ai_config.providers` → `providers.<id>`（`settings.baseURL` / `settings.apiKey` / `models`），`active` 那条同时成为默认模型
+- `mcp_servers` → `mcp.servers`（`stdio` → local，`http` → remote；缺 command 或 url 的条目跳过）
+- `config.theme` → 明暗模式；`config.tool_approval` → 审批默认值
+
+实测（这台机器装着桌面端）：`bt models --standalone` 里出现 `bit-api-inference-modelscope-cn/…` 与 `bit-deepseek/deepseek-flash`；`bt run` 不带 `-m` 时，落库的 `session_message` 是 `bit-api-inference-modelscope-cn / Qwen/Qwen3.8-Flash-Next`，正是 `ai_config` 里 `active: true` 那条。整个过程中 `~/.config/opencode` 下没配过任何 provider 或密钥。
+
+**还没接**：`config.system_prompt` / `minimal_prompt`（系统提示接管）、`runtimes` + `skills`（解释器与技能注册）、隐藏码脱敏（桌面端把 `hidden_codes` 用作敏感值 → 别名的替换表，CLI 要接的是同一套替换，而不是我自己那个 `brain.snippets`）。
 
 同源不等于没有底线：
 

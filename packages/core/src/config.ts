@@ -18,6 +18,7 @@ import { ConfigNormalize } from "./config/normalize.js"
 import { ConfigDiscovery } from "./config/discovery.js"
 import { ConfigWatch } from "./config/watch.js"
 import { ConfigIntegration } from "./config/integration.js"
+import { BIT_CONFIG_SOURCE, readBitSettings } from "./bit/config.js"
 import { WellKnown } from "./wellknown.js"
 import { AppProcess } from "@opencode/util/process"
 import { ChildProcess } from "effect/process"
@@ -211,6 +212,19 @@ export const layer = (options?: Options) =>
         return yield* Effect.forEach(entries, loadWellknownEntry).pipe(Effect.map((documents) => documents.flat()))
       })
 
+      // BrainTentacle 与桌面端共用一份配置：模型、密钥、MCP 从 bit.db 读出来。它排在 wellknown
+      // 之后、本机与项目配置之前，所以用户在 braintentacle.json 里写的同名项永远盖得住它。
+      // 这段文本不走变量替换：provider 的 key 里可能有 $，替换会把凭据读坏。
+      const loadBit = Effect.fn("Config.loadBit")(function* () {
+        const document = yield* Effect.try({
+          try: () => readBitSettings()?.document,
+          catch: () => undefined,
+        }).pipe(Effect.orElseSucceed(() => undefined))
+        if (!document) return [] as const
+        const info = yield* parseInfo(JSON.stringify(document), BIT_CONFIG_SOURCE)
+        return info ? [new Document({ type: "document", info })] : ([] as const)
+      })
+
       const loadPreferences = Effect.fn("Config.loadPreferences")(function* (plist: AbsolutePath) {
         const result = yield* processes
           .run(ChildProcess.make("plutil", ["-convert", "json", "-o", "-", plist], { stdin: "ignore" }), {
@@ -307,6 +321,7 @@ export const layer = (options?: Options) =>
           ...managedPolicies,
           ...integrations.values(),
           ...(yield* loadWellknown().pipe(Effect.orDie)),
+          ...(yield* loadBit()),
           ...globalSupplementary,
           ...explicit,
           ...direct,

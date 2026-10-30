@@ -373,9 +373,9 @@ export const settings: Setting[] = [
     title: "Approval mode",
     category: "BrainTentacle",
     path: ["brain", "approval"],
-    description: "ask 每次写入都先确认；auto 自动放行策略未明确拒绝的调用",
-    default: "ask",
-    values: ["ask", "auto"],
+    description: "inherit 跟随桌面端的 tool_approval；ask 每次写入都先确认；auto 自动放行策略未明确拒绝的调用",
+    default: "inherit",
+    values: ["inherit", "ask", "auto"],
     keywords: ["approval", "permission", "yolo", "审批", "自动批准"],
   },
   {
