@@ -67,6 +67,7 @@ import { useConnected } from "./component/use-connected"
 import { DialogMcp } from "./component/dialog-mcp"
 import { DialogUsage } from "./component/usage"
 import { DialogStatus } from "./component/dialog-status"
+import { DialogAbout } from "./component/dialog-about"
 import { DialogConfig } from "./component/dialog-config"
 import { DialogDebug } from "./component/dialog-debug"
 import { DialogPair } from "./component/dialog-pair"
@@ -1056,6 +1057,15 @@ function App() {
         slash: { name: "status" },
         run: () => {
           dialog.replace(() => <DialogStatus />)
+        },
+        category: "System",
+      },
+      {
+        name: "opencode.about",
+        title: "About BrainTentacle",
+        slash: { name: "about" },
+        run: () => {
+          dialog.replace(() => <DialogAbout />)
         },
         category: "System",
       },
