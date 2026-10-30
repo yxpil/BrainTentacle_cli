@@ -1,0 +1,10 @@
+[Desktop Entry]
+Name=BrainTentacle
+Exec=/opt/BrainTentacle/com.braintentacle %U
+Terminal=false
+Type=Application
+Icon=com.braintentacle
+StartupWMClass=com.braintentacle.desktop
+NoDisplay=true
+Comment=BrainTentacle AI coding agent
+Categories=Development;
