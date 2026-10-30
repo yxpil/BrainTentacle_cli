@@ -135,7 +135,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/yxpil/BrainTentacle"
+    "url": "https://github.com/yxpil/BrainTentacle_cli"
   },
   "license": "MIT",
   "prettier": {
