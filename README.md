@@ -11,11 +11,13 @@ BrainTentacle（BIT，触手怪）的终端界面与命令行工具。它是 [op
 - **这不是 opencode 官方发行版**：命令名、配置、更新地址都改了；BrainTentacle 的问题请提到本仓库，不要提到上游的 issue 区。
 - **它在 GitHub 里不是一个 network fork**（仓库是独立创建的，所以页面左上角不会有 "forked from" 标记）。上游关系只记录在这里和 `/about` 里，请以此为准。
 - 桌面端（Electron 版触手怪）在 **[yxpil/BrainTentacle](https://github.com/yxpil/BrainTentacle)**。本 CLI 的配置面**接在同一份 `bit.db` 上**，目标是"只配一次"：模型与 key、审批、技能、解释器、主题、语言都以桌面端的数据为准，不再维护一份平行的 opencode 配置。详见下面「与桌面端同源」。
-- 分支拓扑：
-  | 分支 | 内容 |
+- 分支拓扑：远端**只有 `main`**。
+  | 位置 | 内容 |
   | --- | --- |
-  | `main` | BrainTentacle 定制快照链（每个提交是一棵完整树，**不含上游历史**） |
-  | `bit-cli` | 独立版命令行（直接读写 `bit.db` 的那一版），与本 CLI 是两套东西 |
+  | 远端 `main` | BrainTentacle 定制快照链（每个提交是一棵完整树，**不含上游历史**） |
+  | 本地 `dev` | 同一批改动带上游完整历史的开发分支，目前没推上来 |
+
+  早先那个直接读写 `bit.db` 的独立版命令行（自带 bit-engine 与 52 个测试）以前另开在 `bit-cli` 分支上，现在那条分支已从远端删除，代码只剩本地一份存档（`Desktop/OpenCode/bit-cli`，HEAD `1732357`）。要重新发布：`cd Desktop/OpenCode/bit-cli && git push origin HEAD:refs/heads/bit-cli`。它的**存储层**已经移植进本仓库（见下面「与桌面端同源」），**引擎层没有**——独立版用自研 agent 循环，这一版用 opencode 的。
 - 上游基线：本 fork 从 `anomalyco/opencode` 的提交 **`304e835`** 拉出。注意这个哈希属于上游仓库，**不在 `main` 的谱系里**，所以 `git log` 克隆下来的 `main` 上看不到分叉点——带完整上游历史的开发分支（本地 `dev`）目前还没推上来。要对照上游，请直接去上游仓库看该提交，或先 `git remote add upstream https://github.com/anomalyco/opencode.git && git fetch --filter=blob:none upstream`（只取 commit/tree，不搬全部 blob）。
 
 ## 相对上游改了什么
@@ -57,7 +59,7 @@ BrainTentacle（BIT，触手怪）的终端界面与命令行工具。它是 [op
 
 ## 与桌面端同源（bit.db）
 
-存储层已经搬进来：`packages/bit-store`（与本仓库 `bit-cli` 分支同一份实现，逐字节对齐 Rust 的 `securefile.rs` + `osprotect.rs`：`tag=0` 明文 / `tag=1` DPAPI CurrentUser + 固定熵，内层可选 `BITENC1:` 设备密钥流 + HMAC）。数据目录按桌面端规则解析（Windows `%APPDATA%\com.bit.hub`、macOS `~/Library/Application Support`、Linux `$XDG_DATA_HOME`，可用 `BIT_DATA_DIR` 覆盖），共享同一个库时带 `busy_timeout=5000`。
+存储层已经搬进来：`packages/core/src/bit/store`（从上面那个独立版移植过来的同一份实现，逐字节对齐 Rust 的 `securefile.rs` + `osprotect.rs`：`tag=0` 明文 / `tag=1` DPAPI CurrentUser + 固定熵，内层可选 `BITENC1:` 设备密钥流 + HMAC）。数据目录按桌面端规则解析（Windows `%APPDATA%\com.bit.hub`、macOS `~/Library/Application Support`、Linux `$XDG_DATA_HOME`，可用 `BIT_DATA_DIR` 覆盖），共享同一个库时带 `busy_timeout=5000`。
 
 本机 `bit.db` 实测（只看编码和形状，值不落文档）：
 
