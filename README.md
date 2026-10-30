@@ -10,7 +10,7 @@ BrainTentacle（BIT，触手怪）的终端界面与命令行工具。它是 [op
 - 本仓库地址：**[yxpil/BrainTentacle_cli](https://github.com/yxpil/BrainTentacle_cli)**。
 - **这不是 opencode 官方发行版**：命令名、配置、更新地址都改了；BrainTentacle 的问题请提到本仓库，不要提到上游的 issue 区。
 - **它在 GitHub 里不是一个 network fork**（仓库是独立创建的，所以页面左上角不会有 "forked from" 标记）。上游关系只记录在这里和 `/about` 里，请以此为准。
-- 桌面端（Electron 版触手怪）在 **[yxpil/BrainTentacle](https://github.com/yxpil/BrainTentacle)**。本 CLI **不**把桌面端的 `bit.db` 当作自己的数据库——只从中**只读**一个明暗主题字段，会话与配置仍写在 opencode 自己的目录下。真正与 `bit.db` 互通的是独立版命令行（本仓库的 `bit-cli` 分支）。
+- 桌面端（Electron 版触手怪）在 **[yxpil/BrainTentacle](https://github.com/yxpil/BrainTentacle)**。本 CLI 的配置面**接在同一份 `bit.db` 上**，目标是"只配一次"：模型与 key、审批、技能、解释器、主题、语言都以桌面端的数据为准，不再维护一份平行的 opencode 配置。详见下面「与桌面端同源」。
 - 分支拓扑：
   | 分支 | 内容 |
   | --- | --- |
@@ -55,11 +55,29 @@ BrainTentacle（BIT，触手怪）的终端界面与命令行工具。它是 [op
 
 `bt debug paths` 会打印这台机器上的实际路径。
 
-## 与桌面端数据的关系（务必读这段）
+## 与桌面端同源（bit.db）
 
-- 主题同步是**只读**的：只取 `bit.db` 的 `documents` 表里 `name='config'` 那一行的 `theme` 字段（Windows 上即 `%APPDATA%\com.bit.hub\bit.db`）。同一份文档还含 `client_key`、`access_password`、`device_key` 等凭据，代码不读取、不打印、不写回；`documents` 是单写者整文档模型，从 CLI 写回会覆盖桌面端设置。
-- **审批模式不同步**。桌面端可能处于宽松审批，把它带进 CLI 等于开后门；CLI 的审批只看 `brain.approval` 与 `--auto`。
-- 本 CLI 的会话与配置在自己的数据库里（`~/.local/share/opencode/opencode-local.db`），不写 `bit.db`，也不碰桌面端的加密文档（`ai_config`、`mcp_servers`、`hidden_codes`）。
+存储层已经搬进来：`packages/bit-store`（与本仓库 `bit-cli` 分支同一份实现，逐字节对齐 Rust 的 `securefile.rs` + `osprotect.rs`：`tag=0` 明文 / `tag=1` DPAPI CurrentUser + 固定熵，内层可选 `BITENC1:` 设备密钥流 + HMAC）。数据目录按桌面端规则解析（Windows `%APPDATA%\com.bit.hub`、macOS `~/Library/Application Support`、Linux `$XDG_DATA_HOME`，可用 `BIT_DATA_DIR` 覆盖），共享同一个库时带 `busy_timeout=5000`。
+
+本机 `bit.db` 实测（只看编码和形状，值不落文档）：
+
+| documents | 实测编码 | 内容 |
+| --- | --- | --- |
+| `config` | 明文 JSON，53 键 | `theme`、`language`、`tool_approval`、`system_prompt`、`custom_prompt`、`minimal_prompt`、`workspace_root`、`default_shell`、`hidden_code_enabled`、`revision`；同一行里还有 `client_key`、`access_password` |
+| `ai_config` | DPAPI 单层（这台机器 `device_key` 为 `null`，所以没有 `BITENC1` 内层） | `providers[]`：`protocol=openai` + `base_url` + `api_key` + `model` + `active`，另有 `reasoning_effort`、`temperature`、`model_context` |
+| `tools` | **明文 JSON 数组**（首字节 `[`，并未加密） | 21 个 `kind=builtin` 工具；这台机器上**没有** `mcp` / `remote` 条目 |
+| `runtimes` | 明文 JSON 数组 | 7 个解释器：Node.js、Python、Bun、PowerShell、Java、Rust、C# |
+| `skills` / `memories` | 明文 JSON 数组 | 各 1 条 |
+| `mcp_servers` / `hidden_codes` | **这个版本没有这两个文档** | MCP 类工具挂在 `tools[].kind = { kind: "mcp" \| "remote" }` 上；隐藏指令只有 `config.hidden_code_enabled` 开关 |
+
+**已接好**：明暗主题（`config.theme` → `brain.theme_sync`）。
+**接着按上表接**：`ai_config.providers` → opencode 的 provider / 模型 / key（这一步完成后才真正不用配两次）、`config.system_prompt` 与 `minimal_prompt` → 系统提示、`runtimes` + `skills` → 解释器与技能、`tool_approval` → 审批。
+
+同源不等于没有底线：
+
+- **只读优先**。`documents` 没有 rev 列，是"整文档覆盖写"的单写者模型，CLI 写回会和桌面端互相盖掉；`config` 行里装着 `client_key`、`access_password`，只按白名单取用需要的键，其余不读、不打印、不写回。
+- **凭据只进不出**：`ai_config` 解密后喂给 opencode 的 provider 配置，不写回 `bit.db`，也不进任何日志或会话记录。
+- **审批不被静默放开**。桌面端的 `tool_approval` 想作为 CLI 默认值，必须走显式的 `brain.approval: inherit`，`/status` 与 `/about` 会写出当前审批来自哪里；环境变量不再是放行通道。
 
 ## 快速开始
 
