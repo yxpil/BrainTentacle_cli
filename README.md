@@ -6,11 +6,17 @@ BrainTentacle（BIT，触手怪）的终端界面与命令行工具。它是 [op
 
 ## 原仓库说明（Upstream）
 
-- 上游项目：**[anomalyco/opencode](https://github.com/anomalyco/opencode)**，许可证 **MIT**（`LICENSE`，Copyright (c) 2025 opencode）。本仓库是它的 fork，`LICENSE` 原样保留。
-- 本仓库地址：**[yxpil/BrainTentacle_cli](https://github.com/yxpil/BrainTentacle_cli)**，默认分支 `main` 只放 BrainTentacle 的定制快照。
-- **这不是 opencode 官方发行版**。行为、命令名、配置、更新地址都与官方不同；BrainTentacle 的问题请提到本仓库，不要提到上游去污染他们的 issue 区。
-- 桌面端（Electron 版触手怪）在 **[yxpil/BrainTentacle](https://github.com/yxpil/BrainTentacle)**。本 CLI **不**把桌面端的 `bit.db` 当作自己的数据库——它只从中**只读**一个明暗主题字段，会话与配置仍然写在 opencode 自己的目录下。真正与 `bit.db` 互通的是独立版命令行（仓库的 `bit-cli` 分支）。
-- 想回到上游口径对照：`git log` 里 `304e835` 是分叉点，之后都是 BrainTentacle 的改动。
+- 上游项目：**[anomalyco/opencode](https://github.com/anomalyco/opencode)**，许可证 **MIT**（`LICENSE`，Copyright (c) 2025 opencode）。本项目在代码上是它的 fork 改造，`LICENSE` 原样保留。
+- 本仓库地址：**[yxpil/BrainTentacle_cli](https://github.com/yxpil/BrainTentacle_cli)**。
+- **这不是 opencode 官方发行版**：命令名、配置、更新地址都改了；BrainTentacle 的问题请提到本仓库，不要提到上游的 issue 区。
+- **它在 GitHub 里不是一个 network fork**（仓库是独立创建的，所以页面左上角不会有 "forked from" 标记）。上游关系只记录在这里和 `/about` 里，请以此为准。
+- 桌面端（Electron 版触手怪）在 **[yxpil/BrainTentacle](https://github.com/yxpil/BrainTentacle)**。本 CLI **不**把桌面端的 `bit.db` 当作自己的数据库——只从中**只读**一个明暗主题字段，会话与配置仍写在 opencode 自己的目录下。真正与 `bit.db` 互通的是独立版命令行（本仓库的 `bit-cli` 分支）。
+- 分支拓扑：
+  | 分支 | 内容 |
+  | --- | --- |
+  | `main` | BrainTentacle 定制快照链（每个提交是一棵完整树，**不含上游历史**） |
+  | `bit-cli` | 独立版命令行（直接读写 `bit.db` 的那一版），与本 CLI 是两套东西 |
+- 上游基线：本 fork 从 `anomalyco/opencode` 的提交 **`304e835`** 拉出。注意这个哈希属于上游仓库，**不在 `main` 的谱系里**，所以 `git log` 克隆下来的 `main` 上看不到分叉点——带完整上游历史的开发分支（本地 `dev`）目前还没推上来。要对照上游，请直接去上游仓库看该提交，或先 `git remote add upstream https://github.com/anomalyco/opencode.git && git fetch --filter=blob:none upstream`（只取 commit/tree，不搬全部 blob）。
 
 ## 相对上游改了什么
 
