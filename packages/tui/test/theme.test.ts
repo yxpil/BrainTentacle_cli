@@ -27,6 +27,16 @@ test("keeps the experimental opencode2 theme out of the global theme list", () =
   expect(hasTheme("opencode2")).toBe(false)
 })
 
+test("ships the BrainTentacle blue theme in both modes", () => {
+  const theme = allThemes().braintentacle as ThemeV1Json
+  expect(theme).toBeDefined()
+  expect(hasTheme("braintentacle")).toBe(true)
+  expect(resolveTheme(theme, "dark").primary.toInts()).toEqual([96, 165, 250, 255])
+  expect(resolveTheme(theme, "light").primary.toInts()).toEqual([37, 99, 235, 255])
+  expect(resolveTheme(theme, "dark").background.toInts()).toEqual([24, 24, 27, 255])
+  expect(resolveTheme(theme, "light").background.toInts()).toEqual([255, 255, 255, 255])
+})
+
 test("detects V1 themes from their theme field and caches migrations", () => {
   const unversioned = structuredClone(opencodeV1)
   const explicit = { ...structuredClone(opencodeV1), version: 1 }

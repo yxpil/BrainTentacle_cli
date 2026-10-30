@@ -253,6 +253,10 @@ export const Info = Schema.Struct({
       hidden_codes: Schema.optional(Schema.Record(Schema.String, Schema.String)).annotate({
         description: "Prompt shortcuts: typing the key exactly expands it to the mapped text before sending",
       }),
+      theme_sync: Schema.optional(Schema.Boolean).annotate({
+        description:
+          "Follow the light/dark mode the BrainTentacle desktop app chose in bit.db, unless Color mode pins one",
+      }),
     }),
   ).annotate({ description: "BrainTentacle settings" }),
   experimental: Schema.optional(Schema.Record(Schema.String, Schema.Boolean)).annotate({
@@ -271,6 +275,7 @@ export type Resolved = Omit<Info, "attention" | "brain" | "cursor" | "keybinds" 
   brain: {
     approval: "ask" | "auto"
     hidden_codes: Record<string, string>
+    theme_sync: boolean
   }
   attention: {
     notifications: boolean
@@ -321,6 +326,7 @@ export function resolve(
     brain: {
       approval: input.brain?.approval ?? "ask",
       hidden_codes: input.brain?.hidden_codes ?? {},
+      theme_sync: input.brain?.theme_sync ?? true,
     },
     attention: {
       notifications: input.attention?.notifications ?? false,

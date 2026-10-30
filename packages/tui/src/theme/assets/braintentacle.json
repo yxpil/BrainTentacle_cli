@@ -1,0 +1,260 @@
+{
+  "$schema": "https://opencode.ai/theme.json",
+  "defs": {
+    "darkBg": "#18181b",
+    "darkPanel": "#171717",
+    "darkElement": "#0a0a0a",
+    "darkBorder": "#404040",
+    "darkBorderSubtle": "#262626",
+    "darkText": "#fafafa",
+    "darkMuted": "#a3a3a3",
+    "darkTertiary": "#525252",
+    "darkBlue": "#3b82f6",
+    "darkBlueBright": "#60a5fa",
+    "darkSky": "#38bdf8",
+    "darkViolet": "#a78bfa",
+    "darkTeal": "#2dd4bf",
+    "darkGreen": "#00bb7f",
+    "darkGreenBright": "#4ade80",
+    "darkAmber": "#fcbb00",
+    "darkAmberBright": "#fbbf24",
+    "darkOrange": "#fb923c",
+    "darkRed": "#fb2c36",
+    "darkRedBright": "#ff6568",
+    "darkSlate": "#94a3b8",
+    "darkAddedBg": "#004e3b",
+    "darkRemovedBg": "#460809",
+    "lightBg": "#ffffff",
+    "lightPanel": "#f5f5f5",
+    "lightElement": "#fafafa",
+    "lightBorder": "#d4d4d4",
+    "lightBorderSubtle": "#e5e5e5",
+    "lightText": "#171717",
+    "lightMuted": "#737373",
+    "lightTertiary": "#a3a3a3",
+    "lightBlue": "#2563eb",
+    "lightBlueDeep": "#1d4ed8",
+    "lightSky": "#0284c7",
+    "lightViolet": "#7c3aed",
+    "lightTeal": "#0f766e",
+    "lightGreen": "#009767",
+    "lightGreenDeep": "#15803d",
+    "lightAmber": "#b45309",
+    "lightOrange": "#ea580c",
+    "lightRed": "#dc2626",
+    "lightRedDeep": "#b91c1c",
+    "lightSlate": "#475569",
+    "lightAddedBg": "#d0fae5",
+    "lightRemovedBg": "#ffe2e2"
+  },
+  "theme": {
+    "primary": {
+      "dark": "darkBlueBright",
+      "light": "lightBlue"
+    },
+    "secondary": {
+      "dark": "darkViolet",
+      "light": "lightViolet"
+    },
+    "accent": {
+      "dark": "darkBlue",
+      "light": "lightBlueDeep"
+    },
+    "error": {
+      "dark": "darkRedBright",
+      "light": "lightRed"
+    },
+    "warning": {
+      "dark": "darkAmber",
+      "light": "lightAmber"
+    },
+    "success": {
+      "dark": "darkGreen",
+      "light": "lightGreen"
+    },
+    "info": {
+      "dark": "darkSky",
+      "light": "lightSky"
+    },
+    "text": {
+      "dark": "darkText",
+      "light": "lightText"
+    },
+    "textMuted": {
+      "dark": "darkMuted",
+      "light": "lightMuted"
+    },
+    "selectedListItemText": {
+      "dark": "darkBlueBright",
+      "light": "lightBlue"
+    },
+    "background": {
+      "dark": "darkBg",
+      "light": "lightBg"
+    },
+    "backgroundPanel": {
+      "dark": "darkPanel",
+      "light": "lightPanel"
+    },
+    "backgroundElement": {
+      "dark": "darkElement",
+      "light": "lightElement"
+    },
+    "backgroundMenu": {
+      "dark": "darkPanel",
+      "light": "lightPanel"
+    },
+    "border": {
+      "dark": "darkBorder",
+      "light": "lightBorder"
+    },
+    "borderActive": {
+      "dark": "darkBlue",
+      "light": "lightBlue"
+    },
+    "borderSubtle": {
+      "dark": "darkBorderSubtle",
+      "light": "lightBorderSubtle"
+    },
+    "diffAdded": {
+      "dark": "darkGreenBright",
+      "light": "lightGreenDeep"
+    },
+    "diffRemoved": {
+      "dark": "darkRedBright",
+      "light": "lightRedDeep"
+    },
+    "diffContext": {
+      "dark": "darkMuted",
+      "light": "lightMuted"
+    },
+    "diffHunkHeader": {
+      "dark": "darkSky",
+      "light": "lightSky"
+    },
+    "diffHighlightAdded": {
+      "dark": "darkGreen",
+      "light": "lightGreenDeep"
+    },
+    "diffHighlightRemoved": {
+      "dark": "darkRed",
+      "light": "lightRedDeep"
+    },
+    "diffAddedBg": {
+      "dark": "darkAddedBg",
+      "light": "lightAddedBg"
+    },
+    "diffRemovedBg": {
+      "dark": "darkRemovedBg",
+      "light": "lightRemovedBg"
+    },
+    "diffContextBg": {
+      "dark": "darkPanel",
+      "light": "lightPanel"
+    },
+    "diffLineNumber": {
+      "dark": "darkTertiary",
+      "light": "lightTertiary"
+    },
+    "diffAddedLineNumberBg": {
+      "dark": "darkAddedBg",
+      "light": "lightAddedBg"
+    },
+    "diffRemovedLineNumberBg": {
+      "dark": "darkRemovedBg",
+      "light": "lightRemovedBg"
+    },
+    "markdownText": {
+      "dark": "darkText",
+      "light": "lightText"
+    },
+    "markdownHeading": {
+      "dark": "darkBlueBright",
+      "light": "lightBlue"
+    },
+    "markdownLink": {
+      "dark": "darkSky",
+      "light": "lightSky"
+    },
+    "markdownLinkText": {
+      "dark": "darkBlueBright",
+      "light": "lightBlueDeep"
+    },
+    "markdownCode": {
+      "dark": "darkTeal",
+      "light": "lightTeal"
+    },
+    "markdownBlockQuote": {
+      "dark": "darkMuted",
+      "light": "lightMuted"
+    },
+    "markdownEmph": {
+      "dark": "darkViolet",
+      "light": "lightViolet"
+    },
+    "markdownStrong": {
+      "dark": "darkAmberBright",
+      "light": "lightAmber"
+    },
+    "markdownHorizontalRule": {
+      "dark": "darkTertiary",
+      "light": "lightTertiary"
+    },
+    "markdownListItem": {
+      "dark": "darkBlue",
+      "light": "lightBlue"
+    },
+    "markdownListEnumeration": {
+      "dark": "darkSky",
+      "light": "lightSky"
+    },
+    "markdownImage": {
+      "dark": "darkTeal",
+      "light": "lightTeal"
+    },
+    "markdownImageText": {
+      "dark": "darkBlueBright",
+      "light": "lightBlueDeep"
+    },
+    "markdownCodeBlock": {
+      "dark": "darkText",
+      "light": "lightText"
+    },
+    "syntaxComment": {
+      "dark": "darkTertiary",
+      "light": "lightTertiary"
+    },
+    "syntaxKeyword": {
+      "dark": "darkBlue",
+      "light": "lightBlue"
+    },
+    "syntaxFunction": {
+      "dark": "darkGreenBright",
+      "light": "lightGreenDeep"
+    },
+    "syntaxVariable": {
+      "dark": "darkSky",
+      "light": "lightSky"
+    },
+    "syntaxString": {
+      "dark": "darkAmberBright",
+      "light": "lightAmber"
+    },
+    "syntaxNumber": {
+      "dark": "darkViolet",
+      "light": "lightViolet"
+    },
+    "syntaxType": {
+      "dark": "darkTeal",
+      "light": "lightTeal"
+    },
+    "syntaxOperator": {
+      "dark": "darkOrange",
+      "light": "lightOrange"
+    },
+    "syntaxPunctuation": {
+      "dark": "darkSlate",
+      "light": "lightSlate"
+    }
+  }
+}

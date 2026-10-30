@@ -30,7 +30,7 @@ export const settings: Setting[] = [
     category: "Appearance",
     path: ["theme", "name"],
     description: "Color theme used across the interface",
-    default: "opencode",
+    default: "braintentacle",
     keywords: ["color scheme", "colors"],
     open: (dialog) =>
       dialog.replace(() => (
@@ -41,7 +41,7 @@ export const settings: Setting[] = [
     title: "Color mode",
     category: "Appearance",
     path: ["theme", "mode"],
-    description: "Dark or light variant, or follow the system",
+    description: "Dark or light variant, or follow the system (and the desktop app while theme sync is on)",
     default: "system",
     values: ["system", "dark", "light"],
     keywords: ["dark mode", "light mode", "system theme"],
@@ -358,6 +358,16 @@ export const settings: Setting[] = [
     default: process.platform === "win32" ? "manual" : "select",
     values: ["manual", "select"],
     keywords: ["selection", "clipboard"],
+  },
+  {
+    title: "Theme sync",
+    category: "BrainTentacle",
+    path: ["brain", "theme_sync"],
+    description: "跟随桌面端写在 bit.db 的明暗主题；锁定 Color mode 时以本地设置为准",
+    default: true,
+    values: [true, false],
+    labels: ["on", "off"],
+    keywords: ["theme", "dark", "light", "主题同步", "深色", "浅色"],
   },
   {
     title: "Approval mode",

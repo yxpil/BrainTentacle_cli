@@ -1,5 +1,5 @@
 import { TextAttributes } from "@opentui/core"
-import { useTheme } from "../context/theme"
+import { useTheme, useThemes } from "../context/theme"
 import { DialogHeader, DialogLayout } from "../ui/dialog"
 import { useData } from "../context/data"
 import { useConfig } from "../config"
@@ -9,6 +9,7 @@ export function DialogStatus() {
   const data = useData()
   const config = useConfig().data
   const theme = useTheme().surface("dialog")
+  const themes = useThemes()
 
   const mcp = createMemo(() => data.location.mcp.server.list() ?? [])
   const color = (status: string) => {
@@ -26,6 +27,10 @@ export function DialogStatus() {
         <text fg={theme.text.muted}>
           审批 {config.brain.approval} · 隐藏指令 {Object.keys(config.brain.hidden_codes).length} 条 · 自扩展：
           技能 / 插件 / MCP / 本机解释器
+        </text>
+        <text fg={theme.text.muted}>
+          主题 {themes.selected} / {themes.mode()}
+          {config.brain.theme_sync && !themes.locked() ? " · 跟随桌面端" : " · 本地固定"}
         </text>
       </box>
       <Show when={mcp().length > 0} fallback={<text fg={theme.text.base}>No MCP servers</text>}>

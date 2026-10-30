@@ -18,6 +18,7 @@ import {
   type ThemeDocumentSource,
 } from "../theme"
 import { generateSystem, terminalMode } from "../theme/system"
+import { readBitTheme } from "../theme/bit"
 import { discoverThemes } from "../theme/discovery"
 import { createComponentTheme, type ComponentTheme } from "../theme/component"
 import { createEffect, createMemo, createSignal, onCleanup, onMount, type Accessor, type ParentProps } from "solid-js"
@@ -113,7 +114,7 @@ type ThemeContextValue = {
 const [store, setStore] = createStore<State>({
   mode: "dark",
   lock: undefined,
-  active: "opencode",
+  active: "braintentacle",
   ready: false,
 })
 const [themeSources, setThemeSources] = createSignal(allThemes())
@@ -133,10 +134,13 @@ const themeContext = createSimpleContext({
     setStore(
       produce((draft) => {
         const lock = config.theme?.mode === "dark" || config.theme?.mode === "light" ? config.theme.mode : undefined
-        const mode = lock ?? renderer.themeMode ?? props.mode
+        // 主题同步：没有锁定明暗时，跟随桌面端写进 bit.db 的 theme；"auto" 交还给终端自己的判断。
+        const synced = lock || !config.brain.theme_sync ? undefined : readBitTheme()
+        const mode =
+          lock ?? (synced === "dark" || synced === "light" ? synced : undefined) ?? renderer.themeMode ?? props.mode
         draft.mode = mode
         draft.lock = lock
-        draft.active = config.theme?.name ?? "opencode"
+        draft.active = config.theme?.name ?? "braintentacle"
         draft.ready = false
       }),
     )

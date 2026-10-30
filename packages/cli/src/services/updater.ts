@@ -57,6 +57,10 @@ const installNames: Record<Method, string> = {
 }
 
 const wingetPackage = "Anomaly.OpenCode"
+// 更新源换成 BrainTentacle 自己的仓库：版本读 GitHub Release 的 tag，包名用我们发布的 npm 包。
+const updateRepo = "yxpil/BrainTentacle_cli"
+const updatePackage = "braintentacle"
+const latestReleaseUrl = `https://api.github.com/repos/${updateRepo}/releases/latest`
 const wingetArgs = [
   "--id",
   wingetPackage,
@@ -142,7 +146,6 @@ const make = Effect.gen(function* () {
   const appProcess = yield* AppProcess.Service
   const flock = yield* EffectFlock.Service
   const installedVersion = yield* Ref.make(OPENCODE_VERSION)
-  const channel = OPENCODE_CHANNEL.replace(/[^a-zA-Z0-9._-]/g, "-")
   const executable = yield* fs.realPath(process.execPath).pipe(Effect.orElseSucceed(() => process.execPath))
   const installedPackage = yield* Effect.gen(function* () {
     const directory = path.dirname(path.dirname(executable))
@@ -196,21 +199,6 @@ const make = Effect.gen(function* () {
   const curlBinary = yield* fs.realPath(curlPath).pipe(Effect.orElseSucceed(() => curlPath))
 
   // On Windows a bare `bash` may be the WSL launcher, which cannot run the installer against Windows paths.
-  const installerBash = Effect.fnUntraced(function* () {
-    if (process.platform !== "win32") return "bash"
-    if (process.env.OPENCODE_GIT_BASH_PATH) return process.env.OPENCODE_GIT_BASH_PATH
-    const git = yield* exec(["git", "--exec-path"]).pipe(Effect.orElseSucceed(() => undefined))
-    const bash = git?.code === 0 ? path.resolve(git.stdout.trim(), "..", "..", "..", "bin", "bash.exe") : undefined
-    if (bash && (yield* fs.exists(bash).pipe(Effect.orElseSucceed(() => false)))) return bash
-    return yield* Effect.fail(
-      new UpgradeError({
-        title: "Git Bash is required to update BrainTentacle",
-        detail: "The BrainTentacle installer runs with Git Bash on Windows, and it was not found.",
-        retry: "Install Git for Windows or set OPENCODE_GIT_BASH_PATH, then run opencode upgrade again.",
-      }),
-    )
-  })
-
   const method = Effect.fnUntraced(function* () {
     if (executable === curlBinary) return "curl"
     if (installedFormula) return "brew"
@@ -273,25 +261,20 @@ const make = Effect.gen(function* () {
   }
 
   const release = Effect.fnUntraced(function* (method?: Method) {
-    const distribution = method === "brew" ? "homebrew" : "npm"
     // Homebrew Core builds its formula on its own schedule, so the tap release does not describe it.
     const core = method === "brew" && installedFormula === "opencode"
     const response = yield* Effect.tryPromise({
       try: (signal) =>
-        fetch(
-          core
-            ? "https://formulae.brew.sh/api/formula/opencode.json"
-            : `https://opencode.ai/update/api/${encodeURIComponent(channel)}/${encodeURIComponent(OPENCODE_ARTIFACT)}/${distribution}?current=${encodeURIComponent(OPENCODE_VERSION)}`,
-          {
-            signal: AbortSignal.any([signal, AbortSignal.timeout(10_000)]),
-          },
-        ),
+        fetch(core ? "https://formulae.brew.sh/api/formula/opencode.json" : latestReleaseUrl, {
+          headers: core ? undefined : { accept: "application/vnd.github+json", "user-agent": updatePackage },
+          signal: AbortSignal.any([signal, AbortSignal.timeout(10_000)]),
+        }),
       catch: (cause) =>
         new UpgradeError(
           {
             title: "Could not check for BrainTentacle updates",
             detail: errorDetail(cause),
-            retry: "Check your network, then run opencode upgrade again.",
+            retry: `Check your network, then run bt upgrade again.`,
           },
           { cause },
         ),
@@ -300,11 +283,14 @@ const make = Effect.gen(function* () {
       return yield* Effect.fail(
         new UpgradeError({
           title: "Could not check for BrainTentacle updates",
-          detail: `The update service returned HTTP ${response.status}.`,
+          detail:
+            response.status === 404
+              ? `https://github.com/${updateRepo} has published no release yet.`
+              : `The update service returned HTTP ${response.status}.`,
           retry: "Try again in a few minutes.",
         }),
       )
-    const data: { version?: string; metadata?: { package?: string }; versions?: { stable?: string } } =
+    const data: { tag_name?: string; versions?: { stable?: string } } =
       yield* Effect.tryPromise({
         try: () => response.json(),
         catch: (cause) =>
@@ -317,8 +303,9 @@ const make = Effect.gen(function* () {
             { cause },
           ),
       })
-    const version = core ? data.versions?.stable : data.version
-    const packageName = core ? "opencode" : data.metadata?.package
+    const version = core ? data.versions?.stable : data.tag_name?.replace(/^v/, "")
+    // 我们的 Release 只声明版本号：升级目标跟着本机已装的包走，认不出来时才用自己的发布名。
+    const packageName = core ? "opencode" : (installedPackage ?? installedFormula ?? updatePackage)
     if (!version || !packageName)
       return yield* Effect.fail(
         new UpgradeError({
@@ -338,7 +325,7 @@ const make = Effect.gen(function* () {
           title: "Could not check for BrainTentacle updates",
           detail,
           command: ["winget", "search", ...wingetArgs].join(" "),
-          retry: "Fix the issue above, then run opencode upgrade again.",
+          retry: "Fix the issue above, then run bt upgrade again.",
         },
         cause === undefined ? undefined : { cause },
       )
@@ -401,7 +388,7 @@ const make = Effect.gen(function* () {
           title: input.title ?? `${installNames[input.method]} could not install BrainTentacle`,
           detail,
           command: (input.displayCommand ?? input.command).join(" "),
-          retry: input.retry ?? "Fix the issue above, then run opencode upgrade again.",
+          retry: input.retry ?? "Fix the issue above, then run bt upgrade again.",
         },
         cause === undefined ? undefined : { cause },
       )
@@ -425,6 +412,15 @@ const make = Effect.gen(function* () {
   const upgrade = Effect.fnUntraced(function* (method: Method, input: string) {
     if (!parseReleaseVersion(input)) return yield* Effect.fail(new Error(`Invalid version: ${input}`))
     const version = input.trim().replace(/^v/, "")
+    // 上游的 curl 安装脚本装的是 opencode 本体，会把这套定制覆盖掉：只认我们自己的 Release。
+    if (method === "curl")
+      return yield* Effect.fail(
+        new UpgradeError({
+          title: "BrainTentacle has no installer script",
+          detail: `Install ${version} from https://github.com/${updateRepo}/releases/latest, or upgrade an npm install with bt upgrade --method npm.`,
+          retry: "Pick the channel you installed BrainTentacle with, then run bt upgrade again.",
+        }),
+      )
     const packageName =
       method === "winget"
         ? wingetPackage
@@ -432,32 +428,23 @@ const make = Effect.gen(function* () {
           ? "opencode"
           : (yield* release(method)).package
     const target = `${packageName}@${version}`
-    if (installedPackage && packageName !== installedPackage && (method === "pnpm" || method === "yarn")) {
-      return yield* Effect.fail(new Error(`Reinstall ${target} with ${method} to migrate from ${installedPackage}.`))
-    }
     const commands: Record<Exclude<Method, "bun" | "curl" | "brew" | "winget">, string[]> = {
       // Keep the old package: uninstalling it can unlink the replacement command.
       npm: [
         "npm",
         "install",
         "--global",
-        ...((OPENCODE_ARTIFACT === "cli" && !installedPackage?.endsWith("/cli-node")) ||
-        (installedPackage && packageName !== installedPackage)
-          ? ["--force"]
-          : []),
+        ...(OPENCODE_ARTIFACT === "cli" && !installedPackage?.endsWith("/cli-node") ? ["--force"] : []),
         target,
       ],
       pnpm: ["pnpm", "add", "--global", `--allow-build=${packageName}`, target],
       yarn: ["yarn", "global", "add", target],
-      vp:
-        installedPackage && packageName !== installedPackage
-          ? ["vp", "install", "-g", "--force", target]
-          : ["vp", "update", "-g", target],
+      vp: ["vp", "update", "-g", target],
     }
     yield* Effect.scoped(
       Effect.gen(function* () {
         // Other BrainTentacle processes may be installing at the same time. Wait longer than the
-        // slowest install (curl runs two 5-minute commands).
+        // slowest package-manager install.
         yield* flock.acquire("cli-upgrade", undefined, { timeoutMs: Duration.toMillis("15 minutes") })
         if (method === "bun") {
           // Bun does not prune old versions from its shared package cache.
@@ -469,28 +456,6 @@ const make = Effect.gen(function* () {
               method,
               command: ["bun", "install", "--global", "--trust", "--cache-dir", cache, target],
               displayCommand: ["bun", "install", "--global", "--trust", target],
-            }),
-          )
-        }
-        if (method === "curl") {
-          const bash = yield* installerBash()
-          yield* fs.makeDirectory(global.cache, { recursive: true })
-          const directory = yield* temporaryDirectory("update-")
-          const installer = path.join(directory, "install")
-          yield* runUpgrade({
-            method,
-            command: ["curl", "-fsSL", "-o", installer, "https://opencode.ai/v2/install"],
-            displayCommand: ["curl", "-fsSL", "https://opencode.ai/v2/install"],
-            title: "Could not download the BrainTentacle installer",
-            retry: "Check your network, then run opencode upgrade again.",
-          })
-          return yield* retaining(
-            method,
-            runUpgrade({
-              method,
-              command: [bash, installer, "--version", version, "--no-modify-path"],
-              displayCommand: ["opencode", "upgrade", version, "--method", "curl"],
-              title: "The BrainTentacle installer failed",
             }),
           )
         }
@@ -521,7 +486,7 @@ const make = Effect.gen(function* () {
               {
                 title: "Could not prepare the BrainTentacle upgrade",
                 detail: errorDetail(cause),
-                retry: "Fix the issue above, then run opencode upgrade again.",
+                retry: "Fix the issue above, then run bt upgrade again.",
               },
               { cause },
             ),

@@ -48,7 +48,7 @@ const APP_IDS = {
 
 // libappimage (used by AppImageLauncher) resolves the .desktop entry inside an
 // AppImage by globbing `*.desktop` at the squashfs root. If the main
-// executable itself ends in `.desktop` (prod appId `ai.opencode.desktop`), the
+// executable itself ends in `.desktop` (prod appId `com.braintentacle.desktop`), the
 // ELF binary matches the glob and is parsed as a desktop entry, so
 // integration fails with `Malformed desktop entry: Unexpected char '\x7f' at 0`
 // (0x7F is the first byte of the ELF magic).
@@ -70,8 +70,8 @@ const getBase = (appId: string): Configuration => {
       buildResources: "resources",
     },
     // Linux launchers are .desktop files, so this is the desktop file name,
-    // not just the app id. For prod, app id "ai.opencode.desktop" becomes
-    // "ai.opencode.desktop.desktop".
+    // not just the app id. For prod, app id "com.braintentacle.desktop" becomes
+    // "com.braintentacle.desktop.desktop".
     // https://developer.gnome.org/documentation/guidelines/maintainer/integrating.html
     // https://www.electron.build/docs/linux/
     // Release builds take their version from OPENCODE_VERSION instead of rewriting package.json.
@@ -161,7 +161,7 @@ const getBase = (appId: string): Configuration => {
       target: ["dmg", "zip"],
     },
     protocols: {
-      name: "OpenCode",
+      name: "BrainTentacle",
       schemes: ["opencode"],
     },
     win: {
@@ -181,7 +181,7 @@ const getBase = (appId: string): Configuration => {
       category: "Development",
       executableName: linuxExecutableName(appId),
       // Derive the installed `.desktop` filename from `desktopName`
-      // (`ai.opencode.desktop.desktop` for prod) instead of `executableName`,
+      // (`com.braintentacle.desktop.desktop` for prod) instead of `executableName`,
       // so window association is unaffected by the executable rename above.
       syncDesktopName: true,
       desktop: {
@@ -208,13 +208,14 @@ export function getConfig() {
         appId,
         productName: "BrainTentacle Dev",
         publish: {
-          provider: "generic",
-          url: "https://opencode.ai/update/api/dev/desktop/opencode/",
-          channel: "latest",
+          provider: "github",
+          owner: "yxpil",
+          repo: "BrainTentacle_cli",
+          releaseType: "prerelease",
         },
         deb: { fpm: [...previewCompressionFpm("deb"), metainfoFpm(appId)] },
         rpm: {
-          packageName: "opencode-dev",
+          packageName: "braintentacle-dev",
           fpm: [rpmNoBuildIdLinksFpm, ...previewCompressionFpm("rpm"), metainfoFpm(appId)],
         },
       }
@@ -225,15 +226,16 @@ export function getConfig() {
         ...base,
         appId,
         productName: "BrainTentacle Beta",
-        protocols: { name: "OpenCode Beta", schemes: ["opencode"] },
+        protocols: { name: "BrainTentacle Beta", schemes: ["opencode"] },
         publish: {
-          provider: "generic",
-          url: "https://opencode.ai/update/api/beta/desktop/opencode/",
-          channel: "latest",
+          provider: "github",
+          owner: "yxpil",
+          repo: "BrainTentacle_cli",
+          releaseType: "prerelease",
         },
         deb: { fpm: [...previewCompressionFpm("deb"), metainfoFpm(appId)] },
         rpm: {
-          packageName: "opencode-beta",
+          packageName: "braintentacle-beta",
           fpm: [rpmNoBuildIdLinksFpm, ...previewCompressionFpm("rpm"), metainfoFpm(appId)],
         },
       }
@@ -244,11 +246,12 @@ export function getConfig() {
         ...base,
         appId,
         productName: "BrainTentacle",
-        protocols: { name: "OpenCode", schemes: ["opencode"] },
+        protocols: { name: "BrainTentacle", schemes: ["opencode"] },
         publish: {
-          provider: "generic",
-          url: "https://opencode.ai/update/api/latest/desktop/opencode/",
-          channel: "latest",
+          provider: "github",
+          owner: "yxpil",
+          repo: "BrainTentacle_cli",
+          releaseType: "release",
         },
         deb: { fpm: [metainfoFpm(appId), legacyDesktopEntryFpm] },
         rpm: { packageName: "braintentacle", fpm: [rpmNoBuildIdLinksFpm, metainfoFpm(appId), legacyDesktopEntryFpm] },

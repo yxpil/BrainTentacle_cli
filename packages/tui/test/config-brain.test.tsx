@@ -15,12 +15,11 @@ test("decodes BrainTentacle approval modes and hidden codes", () => {
 })
 
 test("resolves BrainTentacle defaults", () => {
-  expect(resolve({}, options).brain).toEqual({ approval: "ask", hidden_codes: {} })
+  expect(resolve({}, options).brain).toEqual({ approval: "ask", hidden_codes: {}, theme_sync: true })
 })
 
 test("resolves BrainTentacle overrides", () => {
-  expect(resolve({ brain: { approval: "auto", hidden_codes: { rr: "review the diff" } } }, options).brain).toEqual({
-    approval: "auto",
-    hidden_codes: { rr: "review the diff" },
-  })
+  expect(
+    resolve({ brain: { approval: "auto", hidden_codes: { rr: "review the diff" }, theme_sync: false } }, options).brain,
+  ).toEqual({ approval: "auto", hidden_codes: { rr: "review the diff" }, theme_sync: false })
 })
