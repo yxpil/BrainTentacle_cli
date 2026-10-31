@@ -1,0 +1,178 @@
+# 把 BrainTentacle CLI 发布到 npm（braintentacle_cli + 12 个平台包）
+# 与上游 release.yml 的区别：只发 CLI，不发桌面端/docker/homebrew；用仓库 secret NPM_TOKEN 而非 npm OIDC；
+# darwin 产物在 macOS runner 上做 ad-hoc 重签名（交叉编译后的签名已失效，未签名会在 Apple Silicon 上 Killed: 9）。
+# 默认只构建不发布，勾选 publish 输入才会真正 npm publish。
+name: publish npm cli
+run-name: "braintentacle_cli ${{ inputs.version }}${{ inputs.publish && ' → npm' || ' (build only)' }}"
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "发布版本号，需与 root package.json 的 version 一致"
+        required: true
+        type: string
+        default: "2.2.0"
+      publish:
+        description: "勾选后真正发布到 npm；不勾选只产出 tarball"
+        required: true
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+concurrency:
+  group: publish-npm-cli
+  cancel-in-progress: false
+
+env:
+  OPENCODE_VERSION: ${{ inputs.version }}
+  OPENCODE_CHANNEL: latest
+  BUN_COMPILE_RELEASE: bun-v1.4.4
+
+jobs:
+  build:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 90
+    steps:
+      - name: Check out
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - name: Set up Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.4.4
+
+      - name: Install
+        run: bun install
+
+      - name: Fetch models catalog
+        run: bun packages/core/script/update-models-snapshot.ts .cache/models-catalog/api.json
+
+      # Builds all 12 CLI targets by cross-compiling, then drops the downloaded bun stubs so pack only
+      # sees release output.
+      - name: Build
+        working-directory: packages/cli
+        run: bun run build && rm -rf dist/.bun
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          OPENCODE_MODELS_SNAPSHOT: ${{ github.workspace }}/.cache/models-catalog/api.json
+
+      - name: Smoke test linux-x64
+        run: bun packages/cli/script/catalog-smoke.ts packages/cli/dist/cli-linux-x64/bin/opencode
+        env:
+          OPENCODE_MODELS_SNAPSHOT: ${{ github.workspace }}/.cache/models-catalog/api.json
+
+      - name: Pack
+        working-directory: packages/cli
+        run: bun run pack
+
+      - name: Check package set
+        run: |
+          set -euo pipefail
+          ls -1 dist/npm
+          [ "$(ls -1 dist/npm/*.tgz | wc -l)" = 13 ] || { echo "expected 13 tarballs (wrapper + 12 platforms)"; exit 1; }
+
+      - name: Upload
+        uses: actions/upload-artifact@v4
+        with:
+          name: npm-tarballs
+          path: dist/npm/*.tgz
+          if-no-files-found: error
+
+  # bun's official darwin stubs carry a Developer ID signature that --compile invalidates, so the binaries
+  # are re-signed here on macOS and smoke tested before anything reaches npm.
+  sign-darwin:
+    needs: build
+    runs-on: macos-14
+    timeout-minutes: 30
+    steps:
+      - name: Download
+        uses: actions/download-artifact@v4
+        with:
+          name: npm-tarballs
+          path: in
+
+      - name: Ad-hoc sign
+        run: |
+          set -euo pipefail
+          mkdir -p signed
+          for file in in/braintentacle_cli-darwin-*-${OPENCODE_VERSION}.tgz; do
+            [ -e "$file" ] || continue
+            work=$(mktemp -d)
+            tar -xzf "$file" -C "$work"
+            bin="$work/package/bin/opencode"
+            codesign --force --sign - "$bin"
+            codesign --verify --strict --verbose=2 "$bin"
+            if [ "$file" = "in/braintentacle_cli-darwin-arm64-${OPENCODE_VERSION}.tgz" ]; then
+              "$bin" --version
+            fi
+            tar --no-mac-metadata -czf "signed/$(basename "$file")" -C "$work" package
+            rm -rf "$work"
+          done
+          ls -1 signed
+
+      - name: Upload
+        uses: actions/upload-artifact@v4
+        with:
+          name: signed-darwin
+          path: signed/*.tgz
+          if-no-files-found: error
+
+  publish:
+    needs: [build, sign-darwin]
+    if: ${{ inputs.publish == true }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - name: Download
+        uses: actions/download-artifact@v4
+        with:
+          pattern: "{npm-tarballs,signed-darwin}"
+          path: in
+          merge-multiple: true
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+
+      - name: Publish
+        env:
+          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: |
+          set -euo pipefail
+          npmrc="$RUNNER_TEMP/npmrc"
+          printf 'registry=https://registry.npmjs.org/\n' > "$npmrc"
+          printf '%s:%s=%s\n' "//registry.npmjs.org/" "_authToken" "$NPM_TOKEN" >> "$npmrc"
+          export NPM_CONFIG_USERCONFIG="$npmrc"
+
+          targets="linux-arm64 linux-x64 linux-x64-baseline linux-arm64-musl linux-x64-musl linux-x64-baseline-musl darwin-arm64 darwin-x64 darwin-x64-baseline windows-arm64 windows-x64 windows-x64-baseline"
+          expected="braintentacle_cli"
+          for target in $targets; do expected="$expected braintentacle_cli-$target"; done
+
+          files=()
+          for target in $targets; do
+            file="in/braintentacle_cli-$target-${OPENCODE_VERSION}.tgz"
+            [ -e "$file" ] || { echo "missing $file"; exit 1; }
+            files+=("$file")
+          done
+          wrapper="in/braintentacle_cli-${OPENCODE_VERSION}.tgz"
+          [ -e "$wrapper" ] || { echo "missing $wrapper"; exit 1; }
+          files+=("$wrapper")
+
+          for file in "${files[@]}"; do
+            name=$(tar -xzOf "$file" package/package.json | jq -r .name)
+            version=$(tar -xzOf "$file" package/package.json | jq -r .version)
+            printf '%s\n' $expected | grep -qxF -- "$name" || { echo "unexpected package $name"; exit 1; }
+            [ "$version" = "$OPENCODE_VERSION" ] || { echo "$name has version $version"; exit 1; }
+            if npm view "$name@$version" version > /dev/null 2>&1; then
+              echo "already published $name@$version"
+              continue
+            fi
+            npm publish "$file" --tag latest --ignore-scripts
+            echo "published $name@$version"
+          done
