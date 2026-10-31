@@ -1,5 +1,5 @@
 # 把 BrainTentacle CLI 发布到 npm（braintentacle_cli + 12 个平台包）
-# 与上游 release.yml 的区别：只发 CLI，不发桌面端/docker/homebrew；用仓库 secret NPM_TOKEN 而非 npm OIDC；
+# 与上游 release.yml 的区别：只发 CLI，不发桌面端/docker/homebrew；用仓库 secret NPM_CLI_TOKEN 而非 npm OIDC；
 # darwin 产物在 macOS runner 上做 ad-hoc 重签名（交叉编译后的签名已失效，未签名会在 Apple Silicon 上 Killed: 9）。
 # 默认只构建不发布，勾选 publish 输入才会真正 npm publish。
 name: publish npm cli
@@ -142,7 +142,7 @@ jobs:
 
       - name: Publish
         env:
-          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
+          NPM_TOKEN: ${{ secrets.NPM_CLI_TOKEN }}
         run: |
           set -euo pipefail
           npmrc="$RUNNER_TEMP/npmrc"
