@@ -156,12 +156,13 @@ jobs:
 
           files=()
           for target in $targets; do
-            file="in/braintentacle_cli-$target-${OPENCODE_VERSION}.tgz"
-            [ -e "$file" ] || { echo "missing $file"; exit 1; }
+            # npm 会把不带 ./ 的参数当成 git/registry 依赖，必须写成相对路径形式
+            file="./in/braintentacle_cli-$target-${OPENCODE_VERSION}.tgz"
+            [ -e "${file#./}" ] || { echo "missing $file"; exit 1; }
             files+=("$file")
           done
-          wrapper="in/braintentacle_cli-${OPENCODE_VERSION}.tgz"
-          [ -e "$wrapper" ] || { echo "missing $wrapper"; exit 1; }
+          wrapper="./in/braintentacle_cli-${OPENCODE_VERSION}.tgz"
+          [ -e "${wrapper#./}" ] || { echo "missing $wrapper"; exit 1; }
           files+=("$wrapper")
 
           for file in "${files[@]}"; do
