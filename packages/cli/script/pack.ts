@@ -6,6 +6,7 @@ import { archiveDir, npmDir } from "@opencode/script/pack"
 import { existsSync } from "fs"
 import { chmod, mkdir, rm, utimes } from "node:fs/promises"
 import path from "node:path"
+import { npmCommand, npmLegacyCommand, npmName, npmPrefix, npmRepository } from "./npm-name"
 
 // Packs the built CLI (dist/) into npm tarballs in dist/npm and standalone archives in dist/archives at
 // the repository root. The release workflow signs the macOS and Windows packages and archives afterwards.
@@ -17,11 +18,13 @@ await mkdir(archiveDir, { recursive: true })
 
 await packDistribution({
   root,
-  name: pkg.name,
-  command: "opencode",
-  legacyCommand: "opencode2",
+  name: npmName,
+  command: npmCommand,
+  legacyCommand: npmLegacyCommand,
   binary: "opencode",
-  packagePrefix: "@opencode/cli-",
+  packagePrefix: npmPrefix,
+  dirPrefix: "cli-",
+  repository: npmRepository,
   archive: (target) => target.startsWith("linux-"),
 })
 if (existsSync(path.join(root, "node"))) {
@@ -31,6 +34,8 @@ if (existsSync(path.join(root, "node"))) {
     command: "opencode2-node",
     binary: "opencode2-node",
     packagePrefix: "@opencode/cli-node-",
+    dirPrefix: "cli-node-",
+    repository: "git+https://github.com/anomalyco/opencode.git",
     archive: () => true,
   })
 }
@@ -42,6 +47,8 @@ async function packDistribution(input: {
   legacyCommand?: string
   binary: string
   packagePrefix: string
+  dirPrefix: string
+  repository: string
   archive: (target: string) => boolean
 }) {
   const binaries: Record<string, string> = {}
@@ -73,6 +80,7 @@ async function packDistribution(input: {
     JSON.stringify(
       {
         name: input.name,
+        description: "BrainTentacle CLI",
         bin: {
           [input.command]: `./bin/${input.command}.exe`,
           ...(input.legacyCommand ? { [input.legacyCommand]: `./bin/${input.command}.exe` } : {}),
@@ -81,7 +89,7 @@ async function packDistribution(input: {
         scripts: { postinstall: "node ./postinstall.mjs" },
         version,
         license: pkg.license,
-        repository: { type: "git", url: "git+https://github.com/anomalyco/opencode.git" },
+        repository: { type: "git", url: input.repository },
         os: ["darwin", "linux", "win32"],
         cpu: ["arm64", "x64"],
         optionalDependencies: binaries,
@@ -91,7 +99,8 @@ async function packDistribution(input: {
     ),
   )
 
-  await Promise.all(Object.keys(binaries).map((name) => pack(`${input.root}/${name.replace("@opencode/", "")}`)))
+  const platformDir = (name: string) => `${input.dirPrefix}${name.slice(input.packagePrefix.length)}`
+  await Promise.all(Object.keys(binaries).map((name) => pack(platformDir(name))))
   await pack(`${input.root}/${input.name}`)
   await Promise.all(
     Object.keys(binaries)
@@ -99,7 +108,7 @@ async function packDistribution(input: {
       .filter(input.archive)
       .map((target) =>
         archive(
-          path.join(input.root, `${input.packagePrefix.replace("@opencode/", "")}${target}`, "bin"),
+          path.join(input.root, `${input.dirPrefix}${target}`, "bin"),
           target,
           input.binary,
         ),
