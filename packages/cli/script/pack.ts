@@ -99,7 +99,8 @@ async function packDistribution(input: {
     ),
   )
 
-  const platformDir = (name: string) => `${input.dirPrefix}${name.slice(input.packagePrefix.length)}`
+  const platformDir = (name: string) =>
+    path.join(input.root, `${input.dirPrefix}${name.slice(input.packagePrefix.length)}`)
   await Promise.all(Object.keys(binaries).map((name) => pack(platformDir(name))))
   await pack(`${input.root}/${input.name}`)
   await Promise.all(
