@@ -128,13 +128,35 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 30
     steps:
-      - name: Download
+      # 两个 artifact 分别落到不同目录：merge-multiple 会并发把两个 artifact 写进同一个 in/，
+      # darwin 包在两边同名，交错写入会得到截断的 tgz（上次 publish 就是在读它时 gzip 报错）。
+      - name: Download unsigned
         uses: actions/download-artifact@v4
         with:
-          pattern: "{npm-tarballs,signed-darwin}"
-          path: in
-          merge-multiple: true
-
+          name: npm-tarballs
+          path: unsigned
+      - name: Download signed darwin
+        uses: actions/download-artifact@v4
+        with:
+          name: signed-darwin
+          path: signed
+      - name: Collect tarballs
+        run: |
+          set -euo pipefail
+          mkdir -p in
+          cp unsigned/*.tgz in/
+          # 签名版覆盖未签名版，只有 darwin 三个同名
+          cp signed/*.tgz in/
+          ls -l in/
+      - name: Check tarballs
+        run: |
+          set -euo pipefail
+          [ "$(ls -1 in/*.tgz | wc -l)" = 13 ] || { echo "expected 13 tarballs"; exit 1; }
+          for file in in/*.tgz; do
+            gzip -t "$file"
+            tar -xzOf "$file" package/package.json > /dev/null
+            echo "ok $file"
+          done
       - name: Set up Node
         uses: actions/setup-node@v4
         with:
