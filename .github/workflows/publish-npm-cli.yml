@@ -75,6 +75,8 @@ jobs:
           set -euo pipefail
           ls -1 dist/npm
           [ "$(ls -1 dist/npm/*.tgz | wc -l)" = 13 ] || { echo "expected 13 tarballs (wrapper + 12 platforms)"; exit 1; }
+          # npm 页面的 README 只来自 tarball 内的 README.md；漏了它发布出去就是 "ERROR: No README data found!"。
+          tar -tzf dist/npm/braintentacle_cli-*.tgz | grep -qx 'package/README.md' || { echo "wrapper tarball has no README.md"; exit 1; }
 
       - name: Upload
         uses: actions/upload-artifact@v4
