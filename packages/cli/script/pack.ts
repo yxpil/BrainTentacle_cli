@@ -66,6 +66,8 @@ async function packDistribution(input: {
 
   await $`mkdir -p ${input.root}/${input.name}/bin`
   await $`cp ./script/postinstall.mjs ${input.root}/${input.name}/postinstall.mjs`
+  // npm 页面只渲染包内的 README.md，仓库根 README 不会跟着 tarball 发布，所以 wrapper 自带一份身份说明。
+  if (input.command === npmCommand) await $`cp ./npm-README.md ${input.root}/${input.name}/README.md`
   await Bun.file(`${input.root}/${input.name}/bin/${input.command}.exe`).write(
     [
       `echo "Error: ${input.name}'s postinstall script was not run." >&2`,
@@ -80,7 +82,8 @@ async function packDistribution(input: {
     JSON.stringify(
       {
         name: input.name,
-        description: "BrainTentacle CLI",
+        description: "BrainTentacle（触手怪）命令行 —— opencode 的深度定制版",
+        homepage: "https://github.com/yxpil/BrainTentacle_cli#readme",
         bin: {
           [input.command]: `./bin/${input.command}.exe`,
           ...(input.legacyCommand ? { [input.legacyCommand]: `./bin/${input.command}.exe` } : {}),
